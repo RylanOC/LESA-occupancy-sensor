@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import map
 import operator
 
@@ -34,7 +36,7 @@ while ret:
 	if (percent_change > thresh):
 		state = "Occupied"
 
-	print "Percent Change: {:.2f}%		State: {}".format(percent_change, state)
+	print "Percent Change: {:.2f}%      State: {}".format(percent_change, state)
 	
 	# check user input
 	# b: update background
