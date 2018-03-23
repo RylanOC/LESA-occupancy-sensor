@@ -42,8 +42,13 @@ def setup_windows(num_cameras):
 		cv2.namedWindow("camera {} raw".format(camera_num))
 		cv2.namedWindow("camera {} avg".format(camera_num))
 
-# main loop to read camera data and detect occupancy
-# accepts list of VideoCapture objects as argument
+'''
+@requires List of connected cameras
+@modifies None
+@returns None
+main loop to read camera data and detect occupancy
+accepts list of VideoCapture objects as argument
+'''
 def detect_occupancy(cameras):
 	num_cameras = len(cameras)
 	background = (0,0,0) # base value to compare new readings to
@@ -81,12 +86,17 @@ def detect_occupancy(cameras):
 		elif key & 0xFF == ord('q'):
 			break
 
-# frees VideoCapture objects and closes windows to ensure exit goes smoothly
-# accepts a list of VideoCapture objects as argument
+'''
+@requires List of connected cameras
+@modifies None
+@returns None
+frees VideoCapture objects and closes windows to ensure exit goes smoothly
+accepts a list of VideoCapture objects as argument
+'''
 def free(cameras):
 	# free resources
-	for cap in cameras:
-		cap.release()
+	for camera in cameras:
+		camera.release()
 	cv2.destroyAllWindows()
 
 if __name__ == '__main__':
