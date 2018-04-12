@@ -2,105 +2,58 @@
 
 import map
 import operator
-
-# image processing imports
-import cv2
 import numpy as np
+
+# libraries to read light sensor data
+import smbus
+import time
+import Adafruit_TCS34725 as sensor
 
 
 '''
 @requires None
 @modifies None
-@returns List of VideoCapture objects
-detect all video capture devices currently connected
-returns list of camera objects
+@returns Sensor object for Adafruit TCS34725 color sensor
 '''
-def detect_cameras():
-	num_cameras = 0
-	cameras = []
-	while True:
-		print("Checking device {}...".format(num_cameras))
-		capture = cv2.VideoCapture(num_cameras)
-		success, frame = capture.read()
-		if success == True:
-			print("Success!")
-			cameras.append(capture)
-			num_cameras += 1
-		else:
-			print("Detected {} devices.".format(num_cameras))
-			return cameras
+def setup_sensor():
+    tcs_sensor = sensor.TCS34725()
+    tcs_sensor.set_interrupt(False)
+    return tcs_sensor
+
 
 '''
-@requires number of connected cameras
+@requires Adafruit TCS34725 color sensor object
 @modifies None
 @returns None
-spawns two windows per connected camera to show raw/processed footage
-accepts the number of connected cameras as argument
+main loop to read color sensor and detect occupancy
 '''
-def setup_windows(num_cameras):
-	for camera_num in range(0, num_cameras):
-		cv2.namedWindow("camera {} raw".format(camera_num))
-		cv2.namedWindow("camera {} avg".format(camera_num))
+def detect_occupancy(tcs_sensor):
+        background = (0,0,0) # base value to compare new readings to
+        threshold = 5 # threshold percent for occupancy
 
+        while True:
+                r, g, b = tcs_sensor.get_raw_data()
+                current_color = (r, g, b)
+
+                change = np.subtract(background, current_color)
+                percent_change = abs(sum(change)/255*100)
+
+                state = "Unoccupied"
+                if (percent_change > threshold):
+                    state = "Occupied"
+                print("Percent Change: {:.2f}%    State: {}".format(percent_change, state))
+                
 '''
-@requires List of connected cameras
+@requires Adafruit TCS34725 color sensor object
 @modifies None
 @returns None
-main loop to read camera data and detect occupancy
-accepts list of VideoCapture objects as argument
+frees sensor object
 '''
-def detect_occupancy(cameras):
-	num_cameras = len(cameras)
-	background = (0,0,0) # base value to compare new readings to
-	threshold = 5 # threshold percent for occupancy
-
-	while True:
-		for camera_num in range(0, num_cameras):
-			success, frame = cameras[camera_num].read()
-			if not success:
-				return
-
-			cv2.imshow("cam{} raw".format(camera_num), frame)
-
-			# calculate and display average color across image
-			averaged_frame = frame
-			average_color = [frame[:, :, i].mean() for i in range(frame.shape[-1])]	
-			averaged_frame[:]  = average_color
-			cv2.imshow("cam{} avg".format(camera_num), frame)
-
-			change = np.subtract(background, average_color)
-			percent_change = abs(sum(change)/len(change)/255*100)
-			
-			state = "Unoccupied"
-			if (percent_change > threshold):
-				state = "Occupied"
-
-			print ("CAM{}        Percent Change: {:.2f}%    State: {}".format(camera_num, percent_change, state))
-		
-		# check user input
-		# b: update background
-		# q: quit		
-		key = cv2.waitKey(1)
-		if key & 0xFF == ord('b'):
-			background = average_color
-		elif key & 0xFF == ord('q'):
-			break
-
-'''
-@requires List of connected cameras
-@modifies None
-@returns None
-frees VideoCapture objects and closes windows to ensure exit goes smoothly
-accepts a list of VideoCapture objects as argument
-'''
-def free(cameras):
-	# free resources
-	for camera in cameras:
-		camera.release()
-	cv2.destroyAllWindows()
+def free(tcs_sensor):
+        tcs_sensor.set_interrupt(True)
+        tcs_sensor.disable()
 
 if __name__ == '__main__':
-	cameras = detect_cameras()
-	setup_windows(len(cameras))
-	detect_occupancy(cameras)
-	free(cameras)
+        tcs_sensor = setup_sensor()
+        detect_occupancy(tcs_sensor)
+        free(tcs_sensor)
