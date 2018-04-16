@@ -21,6 +21,15 @@ def setup_sensor():
     tcs_sensor.set_integration_time(0xD5) # set integration time to 100ms
     return tcs_sensor
 
+'''
+@requires The new and old values being compared, and the maximum value allowed
+@modifies None
+@returns Percent change between the values
+'''
+def calc_percent_change(new_reading, old_reading, max):
+    change = new_reading - old_reading
+    percent_change = abs(change) / max * 100
+    return percent_change
 
 '''
 @requires Adafruit TCS34725 color sensor object
@@ -29,20 +38,25 @@ def setup_sensor():
 main loop to read color sensor and detect occupancy
 '''
 def detect_occupancy(tcs_sensor):
-        background = (0,0,0) # base value to compare new readings to
+        b_r, b_g, b_b a_b= tcs_sensor.get_raw_data() # background color to compare readings to
         threshold = 5 # threshold percent for occupancy
 
         while True:
-                r, g, b = tcs_sensor.get_raw_data()
-                current_color = (r, g, b)
+                r, g, b, a= tcs_sensor.get_raw_data()
 
-                change = np.subtract(background, current_color)
-                percent_change = abs(sum(change)/255*100)
+                # get_raw_data() returns a tuple of unsigned, 16 bit values
+                # 2^16 = 65536, so the maximum expected reading is 65536
+                r_change = calc_percent_change(r, b_r, 65536)
+                g_change = calc_percent_change(g, g_g, 65536)
+                b_change = calc_percent_change(b, b_b, 65536)
+                a_change = calc_percent_change(a, a_b, 65536)
 
                 state = "Unoccupied"
-                if (percent_change > threshold):
+                if (max(r_change, g_change, b_change, a_change) > threshold):
                     state = "Occupied"
-                print("Percent Change: {:.2f}%    State: {}".format(percent_change, state))
+
+                print("""Percent Change (r, g, b, a): ({:.2f}, {:.2f}, {:.2f}, {:.2f})%    
+                    State: {}""".format(r_change, g_change, b_change, a_change, state))
                 
 '''
 @requires Adafruit TCS34725 color sensor object
