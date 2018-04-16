@@ -18,6 +18,7 @@ import Adafruit_TCS34725 as sensor
 def setup_sensor():
     tcs_sensor = sensor.TCS34725()
     tcs_sensor.set_interrupt(False)
+    tcs_sensor.set_integration_time(0xD5) # set integration time to 100ms
     return tcs_sensor
 
 
